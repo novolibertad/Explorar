@@ -1,0 +1,340 @@
+<title>Simulador de Inversión</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: panel de hipótesis a la izquierda, resultados + gráfico a la derecha; una columna en móvil */
+:root {
+  --bg: #f2f5f1;
+  --surface: #ffffff;
+  --fg: #15201b;
+  --muted: #5a6961;
+  --line: #d7dfd9;
+  --accent: #0e6a4e;
+  --accent-soft: rgba(14,106,78,.14);
+  --b: #a85a16;
+  --bad: #b3261e;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1512; --surface: #151f1a; --fg: #e3ebe6; --muted: #93a39a; --line: #26332c;
+    --accent: #4cc59a; --accent-soft: rgba(76,197,154,.16); --b: #e2a55c; --bad: #f2867e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1512; --surface: #151f1a; --fg: #e3ebe6; --muted: #93a39a; --line: #26332c;
+  --accent: #4cc59a; --accent-soft: rgba(76,197,154,.16); --b: #e2a55c; --bad: #f2867e; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 24px; }
+header h1 { font-family: var(--display); font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin: 0 0 6px; letter-spacing: -.01em; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 64ch; }
+.grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 18px; }
+.panel h2 { font-family: var(--body); font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 0; font-weight: 600; }
+.group { display: grid; gap: 10px; }
+.field { display: grid; grid-template-columns: 1fr 118px; align-items: center; gap: 10px; }
+.field label { font-size: 14px; }
+.field small { display: block; color: var(--muted); font-size: 12px; line-height: 1.3; }
+.inp { position: relative; }
+.inp input { width: 100%; font: 500 14px var(--mono); padding: 7px 34px 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
+.inp.wide input { padding-right: 46px; }
+.inp span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font: 13px var(--mono); pointer-events: none; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seg button { font: 500 13px var(--body); padding: 8px 4px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; line-height: 1.2; }
+.seg button small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; }
+.seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; }
+
+.results { display: grid; gap: 20px; min-width: 0; }
+.hero { display: grid; gap: 4px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600; }
+.big { font-family: var(--display); font-size: clamp(36px, 6vw, 56px); font-weight: 700; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.range { font: 14px var(--mono); color: var(--muted); }
+.range b { color: var(--fg); font-weight: 500; }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.stat { padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); display: grid; gap: 2px; }
+.stat .k { font-size: 12px; color: var(--muted); }
+.stat .v { font: 500 18px var(--mono); font-variant-numeric: tabular-nums; }
+.stat .v.bad, .range b.bad { color: var(--bad); }
+@media (max-width: 560px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.fees { border: 1px solid var(--b); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; background: var(--surface); }
+.fees .t { font-weight: 600; }
+.fees .t em { font-style: normal; color: var(--b); font-family: var(--mono); }
+.fees p { margin: 0; color: var(--muted); font-size: 14px; }
+
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; position: relative; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.tip { position: absolute; pointer-events: none; background: var(--fg); color: var(--bg); font: 12px/1.45 var(--mono); padding: 8px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -110%); }
+.tip b { font-family: var(--body); }
+
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
+.tbl { overflow-x: auto; max-height: 360px; overflow-y: auto; border-top: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font: 13px var(--mono); font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 14px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); position: sticky; top: 0; background: var(--surface); }
+th:first-child, td:first-child { text-align: left; }
+footer { color: var(--muted); font-size: 12px; max-width: 80ch; }
+@media (prefers-reduced-motion: no-preference) { .big { transition: color .2s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Simulador de inversión</h1>
+    <p>1.000 escenarios de mercado con tus aportaciones, comisiones, inflación e IRPF del ahorro español. Cambia cualquier dato y se recalcula al momento.</p>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="form" autocomplete="off">
+      <div class="group">
+        <h2>Tus aportaciones</h2>
+        <div class="field"><label for="ini">Capital inicial</label><div class="inp"><input id="ini" inputmode="decimal" value="5000"><span>€</span></div></div>
+        <div class="field"><label for="mes">Aportación mensual</label><div class="inp"><input id="mes" inputmode="decimal" value="300"><span>€</span></div></div>
+        <div class="field"><label for="crec">Subida anual de la aportación<small>Si aportas más cada año</small></label><div class="inp"><input id="crec" inputmode="decimal" value="2"><span>%</span></div></div>
+        <div class="field"><label for="anos">Plazo</label><div class="inp wide"><input id="anos" inputmode="numeric" value="20"><span>años</span></div></div>
+      </div>
+
+      <div class="group">
+        <h2>Cartera</h2>
+        <div class="seg" role="group" aria-label="Perfil de cartera">
+          <button type="button" data-ret="3.5" data-vol="6" id="p-con">Conservador<small>30 % acciones</small></button>
+          <button type="button" data-ret="5.5" data-vol="10" id="p-mod">Moderado<small>60 % acciones</small></button>
+          <button type="button" data-ret="7" data-vol="16" id="p-agr">Agresivo<small>100 % acciones</small></button>
+        </div>
+        <div class="field"><label for="ret">Rentabilidad anual esperada<small>Antes de comisiones</small></label><div class="inp"><input id="ret" inputmode="decimal" value="7"><span>%</span></div></div>
+        <div class="field"><label for="vol">Volatilidad anual<small>Cuánto oscila un año típico</small></label><div class="inp"><input id="vol" inputmode="decimal" value="16"><span>%</span></div></div>
+      </div>
+
+      <div class="group">
+        <h2>Comisiones y entorno</h2>
+        <div class="field"><label for="terA"><span class="swatch" style="background:var(--accent)"></span>Comisión fondo A<small>Indexado típico: 0,10–0,40 %</small></label><div class="inp"><input id="terA" inputmode="decimal" value="0.2"><span>%</span></div></div>
+        <div class="field"><label for="terB"><span class="swatch" style="background:var(--b)"></span>Comisión fondo B<small>Activo de banco: 1,5–2 %</small></label><div class="inp"><input id="terB" inputmode="decimal" value="1.8"><span>%</span></div></div>
+        <div class="field"><label for="inf">Inflación media</label><div class="inp"><input id="inf" inputmode="decimal" value="2.5"><span>%</span></div></div>
+      </div>
+      <p class="hint">Los perfiles son hipótesis aproximadas basadas en históricos de largo plazo de carteras globales, no promesas.</p>
+    </form>
+
+    <section class="results" aria-live="polite">
+      <div class="hero">
+        <span class="eyebrow" id="lblHero">Escenario central a 20 años · fondo A</span>
+        <span class="big" id="p50">—</span>
+        <span class="range">Mal escenario <b id="p10">—</b> · Buen escenario <b id="p90">—</b> · Probabilidad de perder dinero <b id="sLoss">—</b></span>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span class="k">Total aportado</span><span class="v" id="sAport">—</span></div>
+        <div class="stat"><span class="k">Ganancia</span><span class="v" id="sGan">—</span></div>
+        <div class="stat"><span class="k">IRPF si rescatas todo</span><span class="v" id="sTax">—</span></div>
+        <div class="stat"><span class="k">Neto tras impuestos</span><span class="v" id="sNet">—</span></div>
+        <div class="stat"><span class="k">Neto en euros de hoy</span><span class="v" id="sReal">—</span></div>
+        <div class="stat"><span class="k">Renta mensual (regla del 4 %)</span><span class="v" id="sRenta">—</span></div>
+      </div>
+
+      <div class="fees">
+        <span class="t" id="feeT">—</span>
+        <p id="feeP">—</p>
+      </div>
+
+      <div class="chart">
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--accent-soft);outline:1px solid var(--accent)"></span>Fondo A: del 10 % peor al 10 % mejor</span>
+          <span><span class="swatch" style="background:var(--accent)"></span>Fondo A: central</span>
+          <span><span class="swatch" style="background:var(--b)"></span>Fondo B: central</span>
+          <span><span class="swatch" style="background:var(--muted)"></span>Dinero aportado</span>
+        </div>
+        <svg id="svg" viewBox="0 0 720 320" role="img" aria-label="Evolución del patrimonio por años"></svg>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+
+      <details>
+        <summary>Año a año</summary>
+        <div class="tbl"><table><thead><tr><th>Año</th><th>Aportado</th><th>Malo (A)</th><th>Central (A)</th><th>Bueno (A)</th><th>Central (B)</th></tr></thead><tbody id="tbody"></tbody></table></div>
+      </details>
+    </section>
+  </div>
+
+  <footer>
+    Cómo calcula: 1.000 simulaciones mensuales con rentabilidades lognormales y la misma secuencia de mercado para A y B, así la diferencia es solo la comisión. «Malo» y «bueno» son los percentiles 10 y 90. IRPF de la base del ahorro (19 % hasta 6.000 €, 21 % hasta 50.000 €, 23 % hasta 200.000 €, 27 % hasta 300.000 €, 30 % a partir de ahí), aplicado al rescatar todo al final. Los traspasos entre fondos no tributan en España. La renta del 4 % se calcula sobre el neto en euros de hoy. No es asesoramiento financiero.
+  </footer>
+</div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const F = ['ini', 'mes', 'crec', 'anos', 'ret', 'vol', 'terA', 'terB', 'inf'];
+  const KEY = 'simulador-inversion-v1';
+  const eur = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  const pctf = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
+  const fmt = v => eur.format(Math.round(v));
+  const short = v => v >= 1e6 ? (v / 1e6).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + ' M€' : v >= 1e3 ? Math.round(v / 1e3).toLocaleString('es-ES') + ' k€' : Math.round(v) + ' €';
+
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) F.forEach(f => { if (s[f] != null) $(f).value = s[f]; }); } catch (e) {}
+
+  function num(id) { const v = parseFloat(String($(id).value).replace(/\./g, '').replace(',', '.')); return isFinite(v) ? v : 0; }
+  function numDec(id) { const v = parseFloat(String($(id).value).replace(',', '.')); return isFinite(v) ? v : 0; }
+  function read() {
+    return {
+      ini: Math.max(0, num('ini')), mes: Math.max(0, num('mes')), crec: numDec('crec'),
+      anos: Math.min(50, Math.max(1, Math.round(numDec('anos')))),
+      ret: Math.max(-20, Math.min(30, numDec('ret'))), vol: Math.max(0, Math.min(60, numDec('vol'))),
+      terA: Math.max(0, Math.min(10, numDec('terA'))), terB: Math.max(0, Math.min(10, numDec('terB'))), inf: numDec('inf')
+    };
+  }
+
+  function rng(seed) { return function () { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  function simulate(p, ter) {
+    const N = p.anos, S = 1000, r = p.ret / 100, s = p.vol / 100;
+    const mu = (Math.log(1 + r) - s * s / 2) / 12, sg = s / Math.sqrt(12);
+    const fee = Math.pow(1 - ter / 100, 1 / 12);
+    const rand = rng(20261107);
+    const by = Array.from({ length: N + 1 }, () => new Float64Array(S));
+    for (let i = 0; i < S; i++) {
+      let v = p.ini; by[0][i] = v;
+      for (let y = 1; y <= N; y++) {
+        const c = p.mes * Math.pow(1 + p.crec / 100, y - 1);
+        for (let m = 0; m < 12; m++) {
+          v += c;
+          const u1 = rand() || 1e-12, u2 = rand();
+          const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+          v *= Math.exp(mu + sg * z) * fee;
+        }
+        by[y][i] = v;
+      }
+    }
+    const q = (a, x) => a[Math.floor(x * (a.length - 1))];
+    const o = { p10: [], p50: [], p90: [] };
+    by.forEach(a => { a.sort(); o.p10.push(q(a, .1)); o.p50.push(q(a, .5)); o.p90.push(q(a, .9)); });
+    o.final = by[N];
+    return o;
+  }
+
+  function irpf(g) {
+    if (g <= 0) return 0;
+    const t = [[6000, .19], [50000, .21], [200000, .23], [300000, .27], [Infinity, .30]];
+    let prev = 0, tax = 0;
+    for (const [lim, rate] of t) { if (g > prev) tax += (Math.min(g, lim) - prev) * rate; prev = lim; }
+    return tax;
+  }
+
+  function niceStep(max, n) {
+    const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+  }
+
+  let last = null;
+  function render() {
+    const p = read();
+    try { const s = {}; F.forEach(f => s[f] = $(f).value); localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+
+    document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.ret === p.ret && +b.dataset.vol === p.vol)));
+
+    const A = simulate(p, p.terA), B = simulate(p, p.terB), N = p.anos;
+    const aport = [p.ini];
+    for (let y = 1; y <= N; y++) aport.push(aport[y - 1] + 12 * p.mes * Math.pow(1 + p.crec / 100, y - 1));
+
+    const fin = A.p50[N], tot = aport[N], gan = fin - tot, tax = irpf(gan), net = fin - tax;
+    const real = net / Math.pow(1 + p.inf / 100, N);
+    let loss = 0; for (const v of A.final) if (v < tot) loss++;
+
+    $('lblHero').textContent = 'Escenario central a ' + N + (N === 1 ? ' año' : ' años') + ' · fondo A';
+    $('p50').textContent = fmt(fin);
+    $('p10').textContent = fmt(A.p10[N]);
+    $('p90').textContent = fmt(A.p90[N]);
+    $('sAport').textContent = fmt(tot);
+    $('sGan').textContent = fmt(gan);
+    $('sTax').textContent = fmt(tax);
+    $('sNet').textContent = fmt(net);
+    $('sReal').textContent = fmt(real);
+    $('sRenta').textContent = fmt(Math.max(0, real) * 0.04 / 12) + '/mes';
+    const lp = loss / A.final.length * 100;
+    $('sLoss').textContent = lp.toLocaleString('es-ES', { maximumFractionDigits: 1 }) + ' %';
+    $('sLoss').classList.toggle('bad', lp >= 10);
+
+    const diff = A.p50[N] - B.p50[N];
+    const dTA = pctf.format(p.terA) + ' %', dTB = pctf.format(p.terB) + ' %';
+    if (Math.abs(diff) < 1) {
+      $('feeT').textContent = 'A y B tienen la misma comisión.';
+      $('feeP').textContent = 'Pon en B la comisión de otro fondo para ver cuánto te cuesta.';
+    } else {
+      const cheap = diff > 0 ? 'A' : 'B', exp = diff > 0 ? 'B' : 'A';
+      $('feeT').innerHTML = 'Con el fondo ' + exp + ' acabarías con <em>' + fmt(Math.abs(diff)) + '</em> menos.';
+      $('feeP').textContent = 'Es un ' + (Math.abs(diff) / Math.max(A.p50[N], B.p50[N]) * 100).toLocaleString('es-ES', { maximumFractionDigits: 0 }) +
+        ' % de tu patrimonio final, solo por pagar ' + (diff > 0 ? dTB : dTA) + ' en vez de ' + (diff > 0 ? dTA : dTB) + ' al año. Mismo mercado y mismas aportaciones que el fondo ' + cheap + '.';
+    }
+
+    let rows = '';
+    for (let y = 1; y <= N; y++) rows += '<tr><td>' + y + '</td><td>' + fmt(aport[y]) + '</td><td>' + fmt(A.p10[y]) + '</td><td>' + fmt(A.p50[y]) + '</td><td>' + fmt(A.p90[y]) + '</td><td>' + fmt(B.p50[y]) + '</td></tr>';
+    $('tbody').innerHTML = rows;
+
+    last = { p, A, B, aport };
+    draw();
+  }
+
+  const W = 720, H = 320, L = 62, R = 14, T = 12, Bm = 30;
+  function draw() {
+    const { p, A, B, aport } = last, N = p.anos;
+    const maxV = Math.max(A.p90[N], aport[N], 1);
+    const step = niceStep(maxV, 4), top = Math.ceil(maxV / step) * step;
+    const x = y => L + (W - L - R) * y / N, yv = v => T + (H - T - Bm) * (1 - Math.min(v, top) / top);
+    const line = arr => arr.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + yv(v).toFixed(1)).join('');
+    let s = '';
+    for (let v = 0; v <= top + 1e-6; v += step) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yv(v) + '" y2="' + yv(v) + '" stroke="var(--line)" stroke-width="1"/><text x="' + (L - 8) + '" y="' + (yv(v) + 4) + '" text-anchor="end" font-size="11" font-family="var(--mono)" fill="var(--muted)">' + short(v) + '</text>';
+    const xs = niceStep(N, 5) < 1 ? 1 : Math.round(niceStep(N, 5));
+    for (let y = 0; y <= N; y += xs) s += '<text x="' + x(y) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" font-family="var(--mono)" fill="var(--muted)">' + (y === 0 ? 'hoy' : 'año ' + y) + '</text>';
+    const band = A.p90.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + yv(v).toFixed(1)).join('') +
+      A.p10.map((v, i) => 'L' + x(i).toFixed(1) + ' ' + yv(v).toFixed(1)).reverse().join('') + 'Z';
+    s += '<path d="' + band + '" fill="var(--accent-soft)" stroke="none"/>';
+    s += '<path d="' + line(aport) + '" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>';
+    s += '<path d="' + line(B.p50) + '" fill="none" stroke="var(--b)" stroke-width="2"/>';
+    s += '<path d="' + line(A.p50) + '" fill="none" stroke="var(--accent)" stroke-width="2.5"/>';
+    s += '<circle cx="' + x(N) + '" cy="' + yv(A.p50[N]) + '" r="4" fill="var(--accent)"/>';
+    s += '<circle cx="' + x(N) + '" cy="' + yv(B.p50[N]) + '" r="3.5" fill="var(--b)"/>';
+    s += '<line id="hover" x1="0" x2="0" y1="' + T + '" y2="' + (H - Bm) + '" stroke="var(--fg)" stroke-width="1" opacity="0"/>';
+    s += '<rect id="hit" x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - Bm) + '" fill="transparent"/>';
+    const svg = $('svg'); svg.innerHTML = s;
+
+    const hit = $('hit'), hv = $('hover'), tip = $('tip');
+    function move(e) {
+      const r = svg.getBoundingClientRect(), sx = (e.clientX - r.left) * W / r.width;
+      const y = Math.max(0, Math.min(N, Math.round((sx - L) / (W - L - R) * N)));
+      hv.setAttribute('x1', x(y)); hv.setAttribute('x2', x(y)); hv.setAttribute('opacity', '.35');
+      tip.innerHTML = '<b>' + (y === 0 ? 'Hoy' : 'Año ' + y) + '</b><br>Central A ' + fmt(A.p50[y]) + '<br>Central B ' + fmt(B.p50[y]) + '<br>Aportado ' + fmt(aport[y]);
+      tip.hidden = false;
+      const box = svg.parentElement.getBoundingClientRect();
+      const px = r.left - box.left + x(y) * r.width / W, py = r.top - box.top + yv(A.p50[y]) * r.height / H;
+      tip.style.left = Math.max(80, Math.min(box.width - 80, px)) + 'px';
+      tip.style.top = Math.max(70, py) + 'px';
+    }
+    hit.addEventListener('pointermove', move);
+    hit.addEventListener('pointerdown', move);
+    hit.addEventListener('pointerleave', () => { tip.hidden = true; hv.setAttribute('opacity', '0'); });
+  }
+
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    $('ret').value = b.dataset.ret; $('vol').value = b.dataset.vol; render();
+  }));
+  let tmr;
+  $('form').addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(render, 150); });
+  $('form').addEventListener('submit', e => e.preventDefault());
+  render();
+})();
+</script>
