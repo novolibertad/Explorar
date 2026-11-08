@@ -40,7 +40,11 @@ python cartera.py perfil                                  # cuestionario + tu ca
 python cartera.py comparar --inicial 5000 --mensual 200   # 4 perfiles, mismo periodo
 python cartera.py comparar --cartera "IWDA.AS:70,EUNH.DE:30" --explicar
 python cartera.py comparar --demo                         # sin red, datos sintéticos
+streamlit run app.py                                      # web: perfil, gráficos, cotizaciones
+python -m pytest -q                                       # 100 tests
 ```
+
+Proveedor de datos: `CARTERA_PROVEEDOR=yahoo|eodhd|twelvedata|demo` (claves en `EODHD_API_KEY` / `TWELVEDATA_API_KEY`). Yahoo es solo uso personal; para un producto público hace falta un plan comercial. Detalles legales y de monetización en `docs/negocio.md`.
 
 Métricas: rentabilidad anual, volatilidad, caída máxima, peor año, meses para recuperarse y valor final con aportaciones mensuales (rebalanceo mensual).
 
