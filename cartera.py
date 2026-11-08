@@ -12,7 +12,7 @@ import argparse
 import sys
 
 from cartera import backtest, datos
-from cartera.perfiles import ORDEN, PERFILES, UNIVERSO, cuestionario, normalizar, parsear_cartera
+from cartera.perfiles import ORDEN, PERFILES, TER, UNIVERSO, cuestionario, normalizar, parsear_cartera
 
 AVISO = ("Aviso: herramienta educativa. Rentabilidades pasadas no garantizan futuras. "
          "No es asesoramiento financiero personalizado.")
@@ -27,12 +27,14 @@ def mostrar_cartera(nombre: str, pesos: dict[str, float]):
 def tabla(resultados: list[backtest.Resultado]):
     r0 = resultados[0]
     print(f"\nPeriodo: {r0.desde} → {r0.hasta}")
-    cab = f"{'Cartera':<14}{'Rent/año':>9}{'Volat.':>8}{'Máx caída':>10}{'Peor año':>9}{'Recup.':>8}{'Valor final':>13}"
+    cab = f"{'Cartera':<14}{'Rent/año':>9}{'Volat.':>8}{'Máx caída':>10}{'Peor año':>9}{'Recup.':>8}{'Sharpe':>7}{'Valor final':>13}"
     print(cab + "\n" + "-" * len(cab))
     for r in resultados:
+        sharpe = f"{r.sharpe:.2f}" if r.sharpe is not None else "—"
         rec = f"{r.meses_recuperar_max_caida}m" if r.meses_recuperar_max_caida is not None else "—"
         print(f"{r.nombre:<14}{r.rentabilidad_anual_pct:>8.1f}%{r.volatilidad_pct:>7.1f}%"
-              f"{r.max_caida_pct:>9.1f}%{r.peor_anio_pct:>8.1f}%{rec:>8}{r.valor_final_eur:>12,.0f}€")
+              f"{r.max_caida_pct:>9.1f}%{r.peor_anio_pct:>8.1f}%{rec:>8}{sharpe:>7}{r.valor_final_eur:>12,.0f}€")
+    print("Resultados netos de TER aproximado de cada ETF.")
     print("Recup. = meses hasta recuperar la máxima caída (— = aún sin recuperar)")
     if r0.aportado_eur:
         print(f"Aportado en total: {r0.aportado_eur:,.0f} €")
@@ -43,7 +45,7 @@ def ejecutar(carteras: dict[str, dict[str, float]], args, perfil: str | None):
     px = datos.precios(tickers, demo=args.demo)
     if args.demo:
         print("⚠️  MODO DEMO: datos sintéticos, no reales.")
-    resultados = [backtest.simular(n, p, px, args.inicial, args.mensual)[0] for n, p in carteras.items()]
+    resultados = [backtest.simular(n, p, px, args.inicial, args.mensual, ter_anual=TER)[0] for n, p in carteras.items()]
     tabla(resultados)
     salida = {"perfil": perfil, "resultados": [r.dict() for r in resultados], "carteras": carteras}
     if args.explicar:
@@ -84,4 +86,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except ValueError as e:
+        sys.exit(f"Error: {e}")
