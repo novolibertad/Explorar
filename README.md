@@ -24,3 +24,24 @@ python agencia.py dia "hogar y cocina"   # productos + guiones del mejor
 Regla de oro: **no pagar anuncios hasta tener 5 ventas orgánicas** de un producto.
 
 Coste API aproximado: 0,10–0,40 € por ejecución de `dia`.
+
+---
+
+# 📊 Comparador de carteras indexadas
+
+Herramienta **educativa**: cuestionario → perfil → cartera de ETFs UCITS → backtest con datos reales → explicación con IA.
+
+- La cartera se asigna por **reglas fijas** (`cartera/perfiles.py`), no por la IA: reproducible y auditable.
+- Datos: Yahoo Finance (`yfinance`), caché semanal en `salidas/precios/`.
+- La IA (opcional, `--explicar`) solo traduce los números a lenguaje claro.
+
+```bash
+python cartera.py perfil                                  # cuestionario + tu cartera
+python cartera.py comparar --inicial 5000 --mensual 200   # 4 perfiles, mismo periodo
+python cartera.py comparar --cartera "IWDA.AS:70,EUNH.DE:30" --explicar
+python cartera.py comparar --demo                         # sin red, datos sintéticos
+```
+
+Métricas: rentabilidad anual, volatilidad, caída máxima, peor año, meses para recuperarse y valor final con aportaciones mensuales (rebalanceo mensual).
+
+⚠️ **Legal (España):** recomendar carteras personalizadas a terceros es asesoramiento financiero y exige licencia CNMV (EAF). Para monetizarla: modo educativo/simulador, contenido o afiliación a brókers, nunca "compra X".
