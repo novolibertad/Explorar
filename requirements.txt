@@ -1,2 +1,8 @@
 anthropic>=2.3.0
 pydantic>=2
+pandas>=2
+numpy>=1.26
+yfinance>=0.2.50
+streamlit>=1.48
+plotly>=5.20
+requests>=2.31
