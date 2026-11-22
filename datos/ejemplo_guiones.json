@@ -1,0 +1,18 @@
+{
+  "producto": "Lámpara luna LED",
+  "guiones": [
+    {
+      "titulo_interno": "Luna en la mesilla",
+      "gancho": "curiosidad",
+      "escenas": [
+        {"segundos": "0-2", "plano": "Habitación a oscuras. Enciendes la lámpara luna sobre la mesilla.", "texto_pantalla": "¿Qué es esto que tengo en la mesilla?", "voz_en_off": ""},
+        {"segundos": "2-8", "plano": "Primer plano: giras la luna con la mano y cambia de color.", "texto_pantalla": "16 colores con el mando", "voz_en_off": "Cambia de color con el mando."},
+        {"segundos": "8-15", "plano": "Plano general: alguien lee en la cama con la luz cálida.", "texto_pantalla": "Luz de noche que no deslumbra", "voz_en_off": "Hace de luz de noche y queda así."},
+        {"segundos": "15-20", "plano": "La luna sola en la habitación oscura, cámara acercándose despacio.", "texto_pantalla": "Está en el carrito naranja 🛒", "voz_en_off": "Te la dejo en el carrito."}
+      ],
+      "descripcion_post": "La luz de noche que más me han preguntado 🌙",
+      "hashtags": ["#lamparaluna", "#decoracionhabitacion", "#ideasregalo", "#tiktokshop"],
+      "sonido_sugerido": "Audio ambiental lento en tendencia"
+    }
+  ]
+}

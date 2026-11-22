@@ -5,12 +5,13 @@ Uso:
   python agencia.py crear salidas/<fecha>_productos.json 1   # Agente 2: guiones del producto nº1
   python agencia.py decidir datos/metricas.csv     # Agente 3: qué escalar o matar
   python agencia.py dia "hogar y cocina"           # Buscar + guiones del mejor producto
+  python agencia.py video salidas/<fecha>_guiones.json 1 medios/   # Monta el guion nº1 en MP4
 """
 import json
 import sys
 from pathlib import Path
 
-from agencia import buscador, creador, jefe
+from agencia import buscador, creador, jefe, video
 from agencia.comun import guardar
 
 
@@ -53,8 +54,18 @@ def cmd_dia(nicho: str):
     cmd_crear(str(ruta), "1")
 
 
+def cmd_video(ruta: str, n: str = "1", medios: str = ""):
+    paquete = json.loads(Path(ruta).read_text(encoding="utf-8"))
+    guion = paquete["guiones"][int(n) - 1]
+    nombre = Path(ruta).stem.replace("_guiones", "") + f"_video{n}.mp4"
+    salida = video.montar(guion, Path("salidas") / nombre, Path(medios) if medios else None)
+    print(f"Vídeo listo: {salida}")
+    if not medios:
+        print("Sin carpeta de medios: escenas en modo storyboard. Graba escena1.mp4, escena2.mp4… y repite.")
+
+
 if __name__ == "__main__":
-    comandos = {"buscar": cmd_buscar, "crear": cmd_crear, "decidir": cmd_decidir, "dia": cmd_dia}
+    comandos = {"buscar": cmd_buscar, "crear": cmd_crear, "decidir": cmd_decidir, "dia": cmd_dia, "video": cmd_video}
     if len(sys.argv) < 3 or sys.argv[1] not in comandos:
         print(__doc__)
         sys.exit(1)
